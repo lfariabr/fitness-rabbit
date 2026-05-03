@@ -1,13 +1,16 @@
 from fastapi import FastAPI
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import RedirectResponse, HTMLResponse
 from dotenv import load_dotenv
 import os
 import httpx
+import json
 from openai import AsyncOpenAI
+from jinja2 import Environment, FileSystemLoader
 
 load_dotenv()
 
 app = FastAPI(title="Fitness Rabbit")
+jinja_env = Environment(loader=FileSystemLoader("templates"))
 
 tokens = {}
 client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -16,10 +19,11 @@ STRAVA_CLIENT_ID = os.getenv("STRAVA_CLIENT_ID")
 STRAVA_CLIENT_SECRET = os.getenv("STRAVA_CLIENT_SECRET")
 STRAVA_REDIRECT_URI = os.getenv("STRAVA_REDIRECT_URI")
 
-@app.get("/", response_class=HTMLResponse)
+@app.get("/")
 async def home():
-    return """<h1 style="text-align:center;margin-top:80px;font-size:3rem;">🏃 Fitness Rabbit</h1>
-    <p style="text-align:center;"><a href="/connect-strava">Conectar Strava</a></p>"""
+    template = jinja_env.get_template("index.html")
+    html = template.render()
+    return HTMLResponse(html)
 
 @app.get("/connect-strava")
 async def connect_strava():
@@ -54,50 +58,44 @@ async def last_activity():
         )
         activity = resp.json()[0]
 
-    # Mostra os dados + botão
-    return HTMLResponse(f"""
-    <div style="max-width:800px; margin:40px auto; font-family:sans-serif; padding:30px; background:#18181b; border-radius:16px;">
-        <h1>🏃 {activity['name']}</h1>
-        <p style="font-size:1.3rem;">
-            <strong>{activity['distance']/1000:.2f} km</strong> • 
-            {activity['moving_time']//60} min • 
-            {activity['total_elevation_gain']:.0f}m elevação
-        </p>
-        <p>Pace médio: {(activity['moving_time'] / (activity['distance']/1000)) / 60:.2f} min/km</p>
-        
-        <hr style="margin:25px 0;">
-        
-        <button onclick="generateFeedback()" 
-                style="background:#f97316; color:white; padding:16px 32px; font-size:1.2rem; border:none; border-radius:12px; cursor:pointer;">
-            🐰 Gerar Feedback do Rabbit
-        </button>
-        
-        <div id="feedback" style="margin-top:30px; font-size:1.1rem; line-height:1.7;"></div>
-    </div>
+    # Calcular metadados
+    distance_km = f"{activity['distance']/1000:.2f}"
+    
+    # Duração: converter segundos para "1h 11min"
+    moving_time_seconds = activity['moving_time']
+    hours = int(moving_time_seconds // 3600)
+    minutes = int((moving_time_seconds % 3600) // 60)
+    if hours > 0:
+        duration_formatted = f"{hours}h {minutes}min"
+    else:
+        duration_formatted = f"{minutes}min"
+    
+    # Elevação
+    elevation_m = f"{activity['total_elevation_gain']:.0f}"
+    
+    # Pace: converter para formato min:seg/km
+    pace_seconds_per_km = (moving_time_seconds / (activity['distance']/1000))
+    pace_minutes = int(pace_seconds_per_km // 60)
+    pace_seconds = int(pace_seconds_per_km % 60)
+    pace_formatted = f"{pace_minutes}:{pace_seconds:02d}/km"
+    
+    # Formatar data
+    from datetime import datetime
+    activity_date = datetime.fromisoformat(activity['start_date_local']).strftime("%d de %B de %Y às %H:%M")
 
-    <script>
-    async function generateFeedback() {{
-        const btn = document.querySelector('button');
-        const feedbackDiv = document.getElementById('feedback');
-        
-        btn.disabled = true;
-        btn.textContent = "Gerando... 🐰";
-        feedbackDiv.innerHTML = "<p>Analisando sua corrida...</p>";
-
-        const res = await fetch('/generate-feedback', {{
-            method: 'POST',
-            headers: {{ 'Content-Type': 'application/json' }},
-            body: JSON.stringify({activity})
-        }});
-        
-        const data = await res.json();
-        feedbackDiv.innerHTML = `<p>${{data.feedback.replace(/\n/g, '<br>')}}</p>`;
-        
-        btn.disabled = false;
-        btn.textContent = "Gerar Novamente";
-    }}
-    </script>
-    """)
+    template = jinja_env.get_template("last-activity.html")
+    html = template.render(
+        activity_name=activity['name'],
+        activity_date=activity_date,
+        distance_km=distance_km,
+        duration_min=duration_formatted,
+        elevation_m=elevation_m,
+        pace_min=pace_formatted,
+        activity_json=json.dumps(activity)
+    )
+    
+    from fastapi.responses import HTMLResponse
+    return HTMLResponse(html)
 
 @app.post("/generate-feedback")
 async def generate_feedback(activity: dict):
