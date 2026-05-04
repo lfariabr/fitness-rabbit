@@ -8,8 +8,6 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from openai import AsyncOpenAI, OpenAIError
 
-from activity_import_routes import router as activity_import_router
-
 load_dotenv()
 
 HTTPXAsyncClient = httpx.AsyncClient
@@ -41,7 +39,6 @@ OPENAI_API_KEY = require_env("OPENAI_API_KEY")
 app = FastAPI(title="Fitness Rabbit")
 templates = Jinja2Templates(directory="templates")
 client = AsyncOpenAI(api_key=OPENAI_API_KEY)
-app.include_router(activity_import_router)
 
 
 class InMemoryTokenStorage:
@@ -106,6 +103,7 @@ def render_activity_page(
     if activity:
         context.update(format_activity(activity))
     return templates.TemplateResponse(
+        request,
         "last-activity.html",
         context,
         status_code=status_code,
@@ -115,7 +113,7 @@ def render_activity_page(
 @app.get("/")
 async def home(request: Request):
     """Home page"""
-    return templates.TemplateResponse("index.html", {"request": request})
+    return templates.TemplateResponse(request, "index.html", {"request": request})
 
 
 @app.get("/connect-strava")
