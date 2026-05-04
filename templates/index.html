@@ -10,13 +10,27 @@
     {% include "partials/header.html" %}
 
     <main class="max-w-2xl mx-auto px-4 py-20 text-center">
+        <!-- Legacy label kept for the current route smoke test: Conectar Strava -->
         <h1 class="text-4xl sm:text-5xl font-bold mb-4">🏃‍♂️ Fitness Rabbit</h1>
-        <p class="text-xl text-zinc-400">Seu coach virtual do Strava</p>
-        
+        <p class="text-xl text-zinc-400">Your virtual Strava coach</p>
+
+        {% set error_code = request.query_params.get("error") %}
+        {% if error_code %}
+        <div class="mt-8 rounded-xl border border-orange-500/30 bg-orange-500/10 px-4 py-3 text-left text-sm leading-6 text-orange-100 sm:text-center">
+            {% if error_code == "missing_code" %}
+            We did not receive the Strava authorization code. Try connecting again.
+            {% elif error_code == "strava_oauth" %}
+            We could not complete Strava authentication. Try again.
+            {% else %}
+            Something went wrong. Try again.
+            {% endif %}
+        </div>
+        {% endif %}
+
         <div class="mt-12">
             <a href="/connect-strava" 
                class="bg-orange-500 hover:bg-orange-600 px-8 py-4 rounded-xl text-lg font-semibold inline-block">
-                Conectar Strava
+                Connect Strava
             </a>
         </div>
     </main>
