@@ -6,19 +6,16 @@
     <title>Última Atividade - Fitness Rabbit</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-zinc-950 text-white">
-    <div class="min-h-screen py-12 px-4">
-        <div class="max-w-2xl mx-auto">
-            <!-- Header -->
-            <div class="mb-8">
-                <a href="/" class="text-orange-500 hover:text-orange-400 font-semibold">← Voltar</a>
-            </div>
+<body class="min-h-screen bg-zinc-950 text-white">
+    {% include "partials/header.html" %}
 
+    <main class="py-12 px-4">
+        <div class="max-w-2xl mx-auto">
             <!-- Activity Card -->
-            <div class="bg-zinc-900 rounded-2xl p-8 border border-zinc-800 shadow-2xl">
+            <div class="bg-zinc-900 rounded-2xl p-6 sm:p-8 border border-zinc-800 shadow-2xl">
                 {% if error_message %}
                 <div class="text-center py-10">
-                    <h1 class="text-3xl font-bold mb-4">Fitness Rabbit</h1>
+                    <h1 class="text-2xl sm:text-3xl font-bold mb-4">Fitness Rabbit</h1>
                     <p class="text-zinc-300 leading-relaxed">{{ error_message }}</p>
                     <a href="/connect-strava"
                        class="mt-8 bg-orange-500 hover:bg-orange-600 px-6 py-3 rounded-xl font-semibold inline-block">
@@ -26,33 +23,33 @@
                     </a>
                 </div>
                 {% else %}
-                <h1 class="text-4xl font-bold mb-2">{{ activity_name }}</h1>
+                <h1 class="text-3xl sm:text-4xl font-bold mb-2">{{ activity_name }}</h1>
                 <p class="text-zinc-400 text-sm mb-6">{{ activity_date }}</p>
 
                 <!-- Stats Grid -->
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 pb-8 border-b border-zinc-800">
                     <div class="bg-zinc-800 rounded-lg p-4">
                         <p class="text-zinc-400 text-xs font-semibold uppercase mb-2">Distância</p>
-                        <p class="text-3xl font-bold text-orange-500">{{ distance_km }}km</p>
+                        <p class="text-2xl sm:text-3xl font-bold text-orange-500">{{ distance_km }}km</p>
                     </div>
                     <div class="bg-zinc-800 rounded-lg p-4">
                         <p class="text-zinc-400 text-xs font-semibold uppercase mb-2">Duração</p>
-                        <p class="text-3xl font-bold text-orange-500">{{ duration_min }}</p>
+                        <p class="text-2xl sm:text-3xl font-bold text-orange-500">{{ duration_min }}</p>
                     </div>
                     <div class="bg-zinc-800 rounded-lg p-4">
                         <p class="text-zinc-400 text-xs font-semibold uppercase mb-2">Elevação</p>
-                        <p class="text-3xl font-bold text-orange-500">{{ elevation_m }}m</p>
+                        <p class="text-2xl sm:text-3xl font-bold text-orange-500">{{ elevation_m }}m</p>
                     </div>
                     <div class="bg-zinc-800 rounded-lg p-4">
                         <p class="text-zinc-400 text-xs font-semibold uppercase mb-2">Pace</p>
-                        <p class="text-3xl font-bold text-orange-500">{{ pace_min }}</p>
+                        <p class="text-2xl sm:text-3xl font-bold text-orange-500">{{ pace_min }}</p>
                     </div>
                 </div>
 
                 <!-- CTA Button -->
                 <button onclick="generateFeedback()" 
                         id="feedbackBtn"
-                        class="w-full bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white font-bold py-4 px-6 rounded-xl text-lg transition-colors duration-200 shadow-lg hover:shadow-xl">
+                        class="w-full bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white font-bold py-4 px-4 sm:px-6 rounded-xl text-base sm:text-lg transition-colors duration-200 shadow-lg hover:shadow-xl">
                     🐰 Gerar Feedback do Rabbit
                 </button>
 
@@ -74,7 +71,9 @@
                 {% endif %}
             </div>
         </div>
-    </div>
+    </main>
+
+    {% include "partials/footer.html" %}
 
     {% if not error_message %}
     <script>
