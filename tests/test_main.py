@@ -1,5 +1,6 @@
 import os
 import sys
+import time
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -91,7 +92,7 @@ async def test_oauth_callback_saves_token_and_redirects():
         payload={
             "access_token": "access-token",
             "refresh_token": "refresh-token",
-            "expires_at": 123,
+            "expires_at": int(time.time()) + 3600,
             "athlete": {"id": 42},
         }
     )
@@ -114,6 +115,17 @@ async def test_oauth_callback_handles_missing_access_token():
     assert main.token_storage.get_current_token() is None
 
 
+def test_token_storage_rejects_expired_tokens():
+    main.token_storage.save_token(
+        {
+            "access_token": "access-token",
+            "expires_at": int(time.time()) - 1,
+        }
+    )
+
+    assert main.token_storage.get_current_token() is None
+
+
 @pytest.mark.asyncio
 async def test_last_activity_redirects_without_token():
     response = await request("GET", "/last-activity")
@@ -124,7 +136,12 @@ async def test_last_activity_redirects_without_token():
 
 @pytest.mark.asyncio
 async def test_last_activity_renders_latest_activity():
-    main.token_storage.save_token({"access_token": "access-token"})
+    main.token_storage.save_token(
+        {
+            "access_token": "access-token",
+            "expires_at": int(time.time()) + 3600,
+        }
+    )
     FakeAsyncClient.get_response = FakeResponse(
         payload=[
             {
@@ -147,7 +164,12 @@ async def test_last_activity_renders_latest_activity():
 
 @pytest.mark.asyncio
 async def test_last_activity_handles_empty_activity_list():
-    main.token_storage.save_token({"access_token": "access-token"})
+    main.token_storage.save_token(
+        {
+            "access_token": "access-token",
+            "expires_at": int(time.time()) + 3600,
+        }
+    )
     FakeAsyncClient.get_response = FakeResponse(payload=[])
 
     response = await request("GET", "/last-activity")
@@ -158,7 +180,12 @@ async def test_last_activity_handles_empty_activity_list():
 
 @pytest.mark.asyncio
 async def test_last_activity_handles_malformed_response():
-    main.token_storage.save_token({"access_token": "access-token"})
+    main.token_storage.save_token(
+        {
+            "access_token": "access-token",
+            "expires_at": int(time.time()) + 3600,
+        }
+    )
     FakeAsyncClient.get_response = FakeResponse(payload={"unexpected": "shape"})
 
     response = await request("GET", "/last-activity")

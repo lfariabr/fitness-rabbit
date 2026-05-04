@@ -1,4 +1,5 @@
 import os
+import time
 from urllib.parse import urlencode
 
 import httpx
@@ -55,6 +56,9 @@ class InMemoryTokenStorage:
 
     def get_current_token(self) -> dict | None:
         if not self._token_payload.get("access_token"):
+            return None
+        expires_at = get_numeric(self._token_payload.get("expires_at"), default=0)
+        if expires_at <= time.time():
             return None
         return self._token_payload
 
@@ -261,4 +265,5 @@ async def generate_feedback(activity: dict):
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
+    reload_enabled = os.getenv("UVICORN_RELOAD", "").lower() == "true"
+    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=reload_enabled)
