@@ -9,6 +9,8 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from openai import AsyncOpenAI, OpenAIError
 
+from activity_import_routes import router as activity_import_router
+
 load_dotenv()
 
 HTTPXAsyncClient = httpx.AsyncClient
@@ -40,6 +42,7 @@ OPENAI_API_KEY = require_env("OPENAI_API_KEY")
 app = FastAPI(title="Fitness Rabbit")
 templates = Jinja2Templates(directory="templates")
 client = AsyncOpenAI(api_key=OPENAI_API_KEY)
+app.include_router(activity_import_router)
 
 
 class InMemoryTokenStorage:
