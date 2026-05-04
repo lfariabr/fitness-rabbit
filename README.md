@@ -26,7 +26,7 @@ Fitness Rabbit analyzes your Strava activities and gives you fast, intelligent a
 
 3. Install dependencies:
    ```bash
-   pip install fastapi uvicorn httpx openai python-dotenv
+   pip install -r requirements.txt
    ```
 
 4. Create a `.env` file in the root with:

@@ -16,6 +16,16 @@
 
             <!-- Activity Card -->
             <div class="bg-zinc-900 rounded-2xl p-8 border border-zinc-800 shadow-2xl">
+                {% if error_message %}
+                <div class="text-center py-10">
+                    <h1 class="text-3xl font-bold mb-4">Fitness Rabbit</h1>
+                    <p class="text-zinc-300 leading-relaxed">{{ error_message }}</p>
+                    <a href="/connect-strava"
+                       class="mt-8 bg-orange-500 hover:bg-orange-600 px-6 py-3 rounded-xl font-semibold inline-block">
+                        Conectar Strava
+                    </a>
+                </div>
+                {% else %}
                 <h1 class="text-4xl font-bold mb-2">{{ activity_name }}</h1>
                 <p class="text-zinc-400 text-sm mb-6">{{ activity_date }}</p>
 
@@ -61,10 +71,12 @@
                         <p class="text-zinc-400">Analisando sua corrida...</p>
                     </div>
                 </div>
+                {% endif %}
             </div>
         </div>
     </div>
 
+    {% if not error_message %}
     <script>
         async function generateFeedback() {
             const btn = document.getElementById('feedbackBtn');
@@ -80,11 +92,11 @@
                 const res = await fetch('/generate-feedback', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({{ activity_json }})
+                    body: JSON.stringify({{ activity | tojson }})
                 });
                 
                 const data = await res.json();
-                feedbackDiv.textContent = data.feedback;
+                feedbackDiv.textContent = data.feedback || 'Oops! Algo deu errado. Tente novamente.';
                 loadingState.classList.add('hidden');
                 feedbackContainer.classList.remove('hidden');
                 btn.textContent = '✨ Gerar Novamente';
@@ -97,5 +109,6 @@
             }
         }
     </script>
+    {% endif %}
 </body>
 </html>
