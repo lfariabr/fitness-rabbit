@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Importar Histórico - Fitness Rabbit</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-zinc-950 text-white">
+    {% include "partials/header.html" %}
+
+    <main class="max-w-6xl mx-auto px-4 py-10">
+        <header class="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div>
+                <h1 class="text-4xl font-bold">Importar histórico</h1>
+                <p class="text-zinc-400 mt-2">Carregue o `activities.csv` exportado pelo Strava para validar dados antes da persistência.</p>
+            </div>
+            <p id="fileMeta" class="text-sm text-zinc-500">Nenhum arquivo carregado.</p>
+        </header>
+
+        <section id="dropZone" class="border border-dashed border-zinc-700 bg-zinc-900 rounded-xl p-6 mb-6">
+            <h2 class="text-xl font-bold mb-2">CSV do Strava</h2>
+            <p class="text-zinc-400 mb-4">O arquivo é lido no browser e enviado ao backend local apenas para gerar o preview. Nada é salvo ainda.</p>
+            <input id="csvFile" type="file" accept=".csv,text/csv" class="block w-full text-sm text-zinc-300 file:mr-4 file:rounded-lg file:border-0 file:bg-orange-500 file:px-4 file:py-2 file:font-bold file:text-zinc-950">
+            <p id="status" class="text-sm text-zinc-500 mt-4">Caminho esperado: Downloads/export_55919296/activities.csv</p>
+        </section>
+
+        <section id="emptyState" class="bg-zinc-900 border border-zinc-800 rounded-xl p-10 text-center">
+            <h2 class="text-2xl font-bold mb-2">Aguardando arquivo</h2>
+            <p class="text-zinc-400">Depois do upload, você verá volume, período, qualidade das colunas e uma prévia das atividades.</p>
+        </section>
+
+        <section id="dashboard" class="hidden space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+                <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
+                    <p class="text-xs uppercase text-zinc-500 font-bold">Atividades</p>
+                    <p id="rowsMetric" class="text-3xl font-bold mt-2">0</p>
+                </div>
+                <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
+                    <p class="text-xs uppercase text-zinc-500 font-bold">Período</p>
+                    <p id="rangeMetric" class="text-3xl font-bold mt-2">-</p>
+                </div>
+                <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
+                    <p class="text-xs uppercase text-zinc-500 font-bold">Distância</p>
+                    <p id="distanceMetric" class="text-3xl font-bold mt-2">0 km</p>
+                </div>
+                <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
+                    <p class="text-xs uppercase text-zinc-500 font-bold">Movimento</p>
+                    <p id="movingMetric" class="text-3xl font-bold mt-2">0 h</p>
+                </div>
+                <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
+                    <p class="text-xs uppercase text-zinc-500 font-bold">Tipos</p>
+                    <p id="typesMetric" class="text-3xl font-bold mt-2">0</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <article class="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
+                    <h2 class="text-xl font-bold mb-4">Tipos de atividade</h2>
+                    <div id="typeBars" class="space-y-3"></div>
+                </article>
+                <article class="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
+                    <h2 class="text-xl font-bold mb-4">Distância anual</h2>
+                    <div id="yearBars" class="space-y-3"></div>
+                </article>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <article class="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
+                    <h2 class="text-xl font-bold mb-4">Qualidade das colunas</h2>
+                    <div id="qualityList" class="space-y-2"></div>
+                </article>
+                <article class="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
+                    <h2 class="text-xl font-bold mb-4">Mapeamento detectado</h2>
+                    <div id="mappingList" class="space-y-2"></div>
+                </article>
+            </div>
+
+            <article class="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
+                <h2 class="text-xl font-bold mb-4">Prévia mais recente</h2>
+                <div class="overflow-x-auto border border-zinc-800 rounded-xl">
+                    <table class="w-full min-w-[760px] text-sm">
+                        <thead class="bg-zinc-800 text-zinc-400 uppercase text-xs">
+                            <tr>
+                                <th class="text-left p-3">Data</th>
+                                <th class="text-left p-3">Tipo</th>
+                                <th class="text-left p-3">Nome</th>
+                                <th class="text-left p-3">Distância</th>
+                                <th class="text-left p-3">Movimento</th>
+                                <th class="text-left p-3">FC média</th>
+                                <th class="text-left p-3">Elevação</th>
+                            </tr>
+                        </thead>
+                        <tbody id="previewRows" class="divide-y divide-zinc-800"></tbody>
+                    </table>
+                </div>
+            </article>
+        </section>
+    </main>
+
+    <script>
+        const fileInput = document.getElementById("csvFile");
+        const statusText = document.getElementById("status");
+        const fileMeta = document.getElementById("fileMeta");
+        const emptyState = document.getElementById("emptyState");
+        const dashboard = document.getElementById("dashboard");
+
+        fileInput.addEventListener("change", async (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            statusText.textContent = "Lendo arquivo...";
+            fileMeta.textContent = `${file.name} - ${formatBytes(file.size)}`;
+
+            try {
+                const csvText = await file.text();
+                statusText.textContent = "Gerando preview no backend local...";
+                const response = await fetch("/import/activities/preview", {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({csv_text: csvText}),
+                });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || "Falha ao processar CSV.");
+                renderPreview(data);
+                statusText.textContent = `${data.summary.rows_importable.toLocaleString("pt-BR")} atividades prontas para futura importação.`;
+            } catch (error) {
+                statusText.textContent = error.message;
+            }
+        });
+
+        function renderPreview(data) {
+            emptyState.classList.add("hidden");
+            dashboard.classList.remove("hidden");
+
+            document.getElementById("rowsMetric").textContent = data.summary.rows_importable.toLocaleString("pt-BR");
+            document.getElementById("rangeMetric").textContent = `${year(data.summary.date_start)}-${year(data.summary.date_end)}`;
+            document.getElementById("distanceMetric").textContent = `${Math.round(data.summary.total_distance_km).toLocaleString("pt-BR")} km`;
+            document.getElementById("movingMetric").textContent = `${Math.round(data.summary.total_moving_hours).toLocaleString("pt-BR")} h`;
+            document.getElementById("typesMetric").textContent = data.summary.activity_types.toLocaleString("pt-BR");
+
+            renderBars("typeBars", Object.entries(data.type_counts), "ativ.");
+            renderBars("yearBars", Object.entries(data.year_distance_km), "km", true);
+            renderQuality(data.quality);
+            renderMapping(data.mapping);
+            renderTable(data.preview);
+        }
+
+        function renderBars(id, entries, suffix, round = false) {
+            const max = Math.max(...entries.map(([, value]) => Number(value)), 1);
+            document.getElementById(id).innerHTML = entries.map(([label, value]) => {
+                const width = Math.max(3, (Number(value) / max) * 100);
+                const display = round ? Math.round(Number(value)).toLocaleString("pt-BR") : Number(value).toLocaleString("pt-BR");
+                return `
+                    <div class="grid grid-cols-[110px_1fr_80px] gap-3 items-center text-sm">
+                        <span class="text-zinc-300 truncate">${escapeHtml(label)}</span>
+                        <div class="h-2 bg-zinc-800 rounded-full overflow-hidden">
+                            <div class="h-full bg-orange-500" style="width:${width}%"></div>
+                        </div>
+                        <span class="text-zinc-400 text-right">${display} ${suffix}</span>
+                    </div>
+                `;
+            }).join("");
+        }
+
+        function renderQuality(quality) {
+            document.getElementById("qualityList").innerHTML = quality.map(item => {
+                const color = item.status === "ok" ? "text-green-400" : item.status === "missing" ? "text-red-400" : "text-orange-400";
+                return `
+                    <div class="flex justify-between gap-4 border-b border-zinc-800 pb-2">
+                        <span class="text-zinc-400">${escapeHtml(item.field)}</span>
+                        <strong class="${color}">${item.present ? `${Math.round(item.ratio * 100)}% preenchido` : "ausente"}</strong>
+                    </div>
+                `;
+            }).join("");
+        }
+
+        function renderMapping(mapping) {
+            document.getElementById("mappingList").innerHTML = Object.entries(mapping).map(([key, value]) => `
+                <div class="flex justify-between gap-4 border-b border-zinc-800 pb-2">
+                    <span class="text-zinc-400">${escapeHtml(key)}</span>
+                    <strong class="text-right">${escapeHtml(value || "Não detectado")}</strong>
+                </div>
+            `).join("");
+        }
+
+        function renderTable(rows) {
+            document.getElementById("previewRows").innerHTML = rows.map(activity => `
+                <tr>
+                    <td class="p-3 text-zinc-300">${escapeHtml(activity.date || "-")}</td>
+                    <td class="p-3 text-zinc-300">${escapeHtml(activity.type)}</td>
+                    <td class="p-3 text-white">${escapeHtml(activity.name)}</td>
+                    <td class="p-3 text-zinc-300">${formatNumber(activity.distance_km, " km")}</td>
+                    <td class="p-3 text-zinc-300">${formatNumber(activity.moving_time_minutes, " min")}</td>
+                    <td class="p-3 text-zinc-300">${formatNumber(activity.average_heart_rate, " bpm")}</td>
+                    <td class="p-3 text-zinc-300">${formatNumber(activity.elevation_gain, " m")}</td>
+                </tr>
+            `).join("");
+        }
+
+        function year(value) {
+            return value ? String(value).slice(0, 4) : "-";
+        }
+
+        function formatNumber(value, suffix) {
+            return value === null || value === undefined ? "-" : `${Number(value).toLocaleString("pt-BR")}${suffix}`;
+        }
+
+        function formatBytes(bytes) {
+            return bytes < 1024 * 1024 ? `${Math.round(bytes / 1024)} KB` : `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+        }
+
+        function escapeHtml(value) {
+            return String(value)
+                .replaceAll("&", "&amp;")
+                .replaceAll("<", "&lt;")
+                .replaceAll(">", "&gt;")
+                .replaceAll('"', "&quot;")
+                .replaceAll("'", "&#039;");
+        }
+    </script>
+
+    {% include "partials/footer.html" %}
+</body>
+</html>
